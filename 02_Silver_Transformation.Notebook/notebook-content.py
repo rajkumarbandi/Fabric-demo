@@ -1,15 +1,34 @@
 # Fabric notebook source
 
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {
+# META     "lakehouse": {
+# META       "default_lakehouse": "23fb6285-b11d-4d7b-a9af-78c761ce904e",
+# META       "default_lakehouse_name": "RetailLakehouse",
+# META       "default_lakehouse_workspace_id": "f30d77e2-708e-4748-8a9b-00c23037a869",
+# META       "known_lakehouses": [
+# META         {
+# META           "id": "23fb6285-b11d-4d7b-a9af-78c761ce904e"
+# META         }
+# META       ]
+# META     }
+# META   }
+# META }
 
 # MARKDOWN ********************
 
 # # 02 - Silver Transformation
-# # **Silver = Cleansed + Standardized.** This is where every data-quality rule and type standardization lives —
+# **Silver = Cleansed + Standardized.** This is where every data-quality rule and type standardization lives —
 # Bronze deliberately has none. This notebook cleans the raw `bronze.bronze_superstore` table, standardizes its
 # data types, and splits it into a set of conformed tables — one per business entity — each with a surrogate key.
 # This is a normalization step, not the final star schema (that happens in Gold).
-# # **Source:** `bronze.bronze_superstore`.
-# # **Output tables:** `silver.segment`, `silver.market`, `silver.ship_mode`, `silver.category`, `silver.geography`,
+# **Source:** `bronze.bronze_superstore`.
+# **Output tables:** `silver.segment`, `silver.market`, `silver.ship_mode`, `silver.category`, `silver.geography`,
 # `silver.date`, `silver.customer`, `silver.product`, `silver.sales`.
 
 # CELL ********************
@@ -44,8 +63,8 @@ bronze_raw = spark.table("bronze.bronze_superstore")
 # MARKDOWN ********************
 
 # ## Step 2 — Data quality cleansing
-# # All cleansing logic lives here, not in Bronze:
-# # - Trim leading/trailing whitespace on every string column (done before dedup, so two rows that only differ by
+# All cleansing logic lives here, not in Bronze:
+# - Trim leading/trailing whitespace on every string column (done before dedup, so two rows that only differ by
 #   whitespace are correctly treated as duplicates).
 # - Remove exact duplicate rows.
 # - Drop rows where `Order ID` — the natural key of the dataset — is missing.
@@ -74,10 +93,10 @@ print(f"Rows after cleansing: {df_valid.count()}")
 # MARKDOWN ********************
 
 # ## Step 3 — Standardize data types
-# # `Order Date` and `Ship Date` arrive as text (Global Superstore export format `dd-MM-yyyy`) and are parsed into
+# `Order Date` and `Ship Date` arrive as text (Global Superstore export format `dd-MM-yyyy`) and are parsed into
 # native `date` columns. Numeric measures are explicitly cast rather than relying on CSV schema inference, and
 # `Postal Code` is cast to string to safely preserve values with leading zeros.
-# # > Adjust the date format string below if your source file uses a different date pattern.
+# > Adjust the date format string below if your source file uses a different date pattern.
 
 # CELL ********************
 
@@ -103,9 +122,9 @@ silver_base = (
 # MARKDOWN ********************
 
 # ## Step 4 — Independent lookup tables
-# # These entities don't depend on any other dimension, so they're built first: `segment`, `market`, `ship_mode`, and
+# These entities don't depend on any other dimension, so they're built first: `segment`, `market`, `ship_mode`, and
 # `category` (which combines `Category` and `Sub-Category` from the source).
-# # > **Surrogate keys:** this notebook uses `monotonically_increasing_id()` to generate surrogate keys.
+# > **Surrogate keys:** this notebook uses `monotonically_increasing_id()` to generate surrogate keys.
 # > In production, surrogate keys are generally generated using sequences, identity columns, or maintained through
 # > merge/SCD logic. `monotonically_increasing_id()` is used here only because this is a simple demo project — it
 # > guarantees unique values but not contiguous or ordered ones.
@@ -165,10 +184,10 @@ print("segment, market, ship_mode, category written.")
 # MARKDOWN ********************
 
 # ## Step 5 — Geography and Date
-# # `geography` groups the location columns (`Country`, `State`, `City`, `Postal Code`, `Region`). Postal Code is
+# `geography` groups the location columns (`Country`, `State`, `City`, `Postal Code`, `Region`). Postal Code is
 # frequently `NULL` outside the US in this dataset, so a null-safe key is used further down when resolving foreign
 # keys for the sales table.
-# # `date` is a standard calendar dimension built from every distinct date found in **either** `Order Date` or
+# `date` is a standard calendar dimension built from every distinct date found in **either** `Order Date` or
 # `Ship Date`, so a single table can serve both roles.
 
 # CELL ********************
@@ -222,7 +241,7 @@ print("geography, date written.")
 # MARKDOWN ********************
 
 # ## Step 6 — Dependent lookup tables
-# # `customer` references `segment`, and `product` references `category`. Each is joined to its parent lookup to
+# `customer` references `segment`, and `product` references `category`. Each is joined to its parent lookup to
 # resolve the surrogate key before being written.
 
 # CELL ********************
@@ -272,10 +291,10 @@ print("customer, product written.")
 # MARKDOWN ********************
 
 # ## Step 7 — Sales (transaction grain)
-# # One row per source record, with every business attribute replaced by the surrogate key of its matching Silver
+# One row per source record, with every business attribute replaced by the surrogate key of its matching Silver
 # lookup table. This preserves referential integrity: every foreign key in `silver.sales` has a matching row in its
 # parent table.
-# # The geography join uses null-safe equality (`eqNullSafe`) because `postal_code` can legitimately be `NULL`.
+# The geography join uses null-safe equality (`eqNullSafe`) because `postal_code` can legitimately be `NULL`.
 
 # CELL ********************
 
