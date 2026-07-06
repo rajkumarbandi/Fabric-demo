@@ -34,7 +34,7 @@
 
 # CELL ********************
 
-from pyspark.sql.functions import col, trim, monotonically_increasing_id, to_date, dayofmonth, month, year, quarter, date_format
+from pyspark.sql.functions import col, lit, trim, monotonically_increasing_id, to_date, dayofmonth, month, year, quarter, date_format
 from pyspark.sql.types import StringType, DoubleType, IntegerType
 
 spark.sql("CREATE SCHEMA IF NOT EXISTS silver")
@@ -130,7 +130,9 @@ print(f"Rows after cleansing: {df_valid.count()}")
 # the date format assumption (`dd-MM-yyyy`, the standard Global Superstore export) can be verified against your
 # actual file — adjust the format string below if the samples don't match.
 # Numeric measures are explicitly cast rather than relying on CSV schema inference, and `Postal_Code` is cast to
-# string to safely preserve values with leading zeros.
+# string to safely preserve values with leading zeros. Not every Global Superstore export variant includes a
+# postal code column (some drop it entirely, especially non-US-only exports), so it's only referenced if present —
+# otherwise `silver.geography` simply gets a `NULL` `postal_code` for every row.
 
 # CELL ********************
 
@@ -145,8 +147,13 @@ silver_base = (
     .withColumn("Discount", col("Discount").cast(DoubleType()))
     .withColumn("Profit", col("Profit").cast(DoubleType()))
     .withColumn("Shipping_Cost", col("Shipping_Cost").cast(DoubleType()))
-    .withColumn("Postal_Code", col("Postal_Code").cast(StringType()))
 )
+
+if "Postal_Code" in silver_base.columns:
+    silver_base = silver_base.withColumn("Postal_Code", col("Postal_Code").cast(StringType()))
+else:
+    print("Postal_Code not present in source — silver.geography will carry a NULL postal_code.")
+    silver_base = silver_base.withColumn("Postal_Code", lit(None).cast(StringType()))
 
 # METADATA ********************
 
