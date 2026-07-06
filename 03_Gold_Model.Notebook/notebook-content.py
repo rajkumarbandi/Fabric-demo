@@ -25,13 +25,6 @@
 # (for example, `dim_customer` does not carry the customer's segment). Instead, `fact_sales` links to every
 # dimension directly, including `dim_category` and `dim_segment`, so no dimension needs to be denormalized.
 
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
-
 # CELL ********************
 
 spark.sql("CREATE SCHEMA IF NOT EXISTS gold")
@@ -49,13 +42,6 @@ spark.sql("CREATE SCHEMA IF NOT EXISTS gold")
 #
 # Each dimension is a direct, pure copy of its Silver lookup table — the surrogate keys generated in Silver are
 # reused as-is, since Silver already normalized these entities correctly.
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # CELL ********************
 
@@ -105,13 +91,6 @@ print("All dimension tables written.")
 # `order_date_sk` and `ship_date_sk` both point at the same `gold.dim_date` table — this is a role-playing
 # dimension. In Power BI, keep the relationship on `order_date_sk` active and mark the `ship_date_sk` relationship
 # inactive (or use `USERELATIONSHIP` in DAX measures that need it).
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # CELL ********************
 
@@ -170,10 +149,3 @@ print(f"gold.fact_sales written: {gold_fact_sales.count()} rows.")
 # ```
 #
 # `gold.fact_sales` is now ready to be used as the source for the Power BI semantic model (Task 4).
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }

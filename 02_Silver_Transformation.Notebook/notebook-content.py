@@ -6,30 +6,31 @@
 # META   "kernel_info": {
 # META     "name": "synapse_pyspark"
 # META   },
-# META   "dependencies": {}
+# META   "dependencies": {
+# META     "lakehouse": {
+# META       "default_lakehouse": "23fb6285-b11d-4d7b-a9af-78c761ce904e",
+# META       "default_lakehouse_name": "RetailLakehouse",
+# META       "default_lakehouse_workspace_id": "f30d77e2-708e-4748-8a9b-00c23037a869",
+# META       "known_lakehouses": [
+# META         {
+# META           "id": "23fb6285-b11d-4d7b-a9af-78c761ce904e"
+# META         }
+# META       ]
+# META     }
+# META   }
 # META }
 
 # MARKDOWN ********************
 
 # # 02 - Silver Transformation
-#
 # **Silver = Cleansed + Standardized.** This is where every data-quality rule and data-type standardization lives —
 # Bronze only standardizes column *names*, nothing else. This notebook cleans `bronze.bronze_superstore`,
 # standardizes value-level data types, and splits it into a set of conformed tables — one per business entity —
 # each with a surrogate key. This is a normalization step, not the final star schema (that happens in Gold).
-#
 # **Source:** `bronze.bronze_superstore` (already has standardized, underscore-safe column names — see Bronze
 # Step 2).
-#
 # **Output tables:** `silver.segment`, `silver.market`, `silver.ship_mode`, `silver.category`, `silver.geography`,
 # `silver.date`, `silver.customer`, `silver.product`, `silver.sales`.
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # CELL ********************
 
@@ -48,16 +49,8 @@ spark.sql("CREATE SCHEMA IF NOT EXISTS silver")
 # MARKDOWN ********************
 
 # ## Step 1 — Read Bronze
-#
 # Column names are already standardized in Bronze (`Customer_ID`, `Order_Date`, `Sub_Category`, etc.), so this
 # notebook can reference them directly with no further renaming.
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # CELL ********************
 
@@ -73,20 +66,12 @@ bronze_df = spark.table("bronze.bronze_superstore")
 # MARKDOWN ********************
 
 # ## Step 2 — Data quality cleansing
-#
 # All value-level cleansing logic lives here, not in Bronze:
 #
 # - Trim leading/trailing whitespace on every string column (done before dedup, so two rows that only differ by
 #   whitespace are correctly treated as duplicates).
 # - Remove exact duplicate rows.
 # - Drop rows where `Order_ID` — the natural key of the dataset — is missing.
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # CELL ********************
 
@@ -112,20 +97,12 @@ print(f"Rows after cleansing: {df_valid.count()}")
 # MARKDOWN ********************
 
 # ## Step 3 — Standardize data types
-#
 # `Order_Date` and `Ship_Date` arrive as text. Before parsing them, a handful of raw sample values are displayed so
 # the date format assumption (`dd-MM-yyyy`, the standard Global Superstore export) can be verified against your
 # actual file — adjust the format string below if the samples don't match.
 #
 # Numeric measures are explicitly cast rather than relying on CSV schema inference, and `Postal_Code` is cast to
 # string to safely preserve values with leading zeros.
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # CELL ********************
 
@@ -153,7 +130,6 @@ silver_base = (
 # MARKDOWN ********************
 
 # ## Step 4 — Independent lookup tables
-#
 # These entities don't depend on any other dimension, so they're built first: `segment`, `market`, `ship_mode`, and
 # `category` (which combines `Category` and `Sub_Category` from the source).
 #
@@ -161,13 +137,6 @@ silver_base = (
 # > In production, surrogate keys are generally generated using sequences, identity columns, or maintained through
 # > merge/SCD logic. `monotonically_increasing_id()` is used here only because this is a simple demo project — it
 # > guarantees unique values but not contiguous or ordered ones.
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # CELL ********************
 
@@ -224,20 +193,12 @@ print("segment, market, ship_mode, category written.")
 # MARKDOWN ********************
 
 # ## Step 5 — Geography and Date
-#
 # `geography` groups the location columns (`Country`, `State`, `City`, `Postal_Code`, `Region`). Postal_Code is
 # frequently `NULL` outside the US in this dataset, so a null-safe key is used further down when resolving foreign
 # keys for the sales table.
 #
 # `date` is a standard calendar dimension built from every distinct date found in **either** `Order_Date` or
 # `Ship_Date`, so a single table can serve both roles.
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # CELL ********************
 
@@ -290,16 +251,8 @@ print("geography, date written.")
 # MARKDOWN ********************
 
 # ## Step 6 — Dependent lookup tables
-#
 # `customer` references `segment`, and `product` references `category`. Each is joined to its parent lookup to
 # resolve the surrogate key before being written.
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # CELL ********************
 
@@ -348,19 +301,11 @@ print("customer, product written.")
 # MARKDOWN ********************
 
 # ## Step 7 — Sales (transaction grain)
-#
 # One row per source record, with every business attribute replaced by the surrogate key of its matching Silver
 # lookup table. This preserves referential integrity: every foreign key in `silver.sales` has a matching row in its
 # parent table.
 #
 # The geography join uses null-safe equality (`eqNullSafe`) because `postal_code` can legitimately be `NULL`.
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # CELL ********************
 
