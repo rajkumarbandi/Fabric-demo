@@ -23,12 +23,12 @@
 # MARKDOWN ********************
 
 # # 02 - Silver Transformation
-# **Silver = Cleansed + Standardized.** This is where every data-quality rule and data-type standardization lives —
-# Bronze only standardizes column *names*, nothing else. This notebook cleans `bronze.bronze_superstore`,
-# standardizes value-level data types, and splits it into a set of conformed tables — one per business entity —
-# each with a surrogate key. This is a normalization step, not the final star schema (that happens in Gold).
-# **Source:** `bronze.bronze_superstore` (already has standardized, underscore-safe column names — see Bronze
-# Step 2).
+# **Silver = Cleansed + Standardized.** Bronze is a byte-for-byte raw copy with no changes of any kind, so every
+# standardization rule — column names, data types, and value-level cleansing — lives here instead. This notebook
+# reads `bronze.bronze_superstore`, standardizes it, and splits it into a set of conformed tables — one per
+# business entity — each with a surrogate key. This is a normalization step, not the final star schema (that
+# happens in Gold).
+# **Source:** `bronze.bronze_superstore`.
 # **Output tables:** `silver.segment`, `silver.market`, `silver.ship_mode`, `silver.category`, `silver.geography`,
 # `silver.date`, `silver.customer`, `silver.product`, `silver.sales`.
 
@@ -48,13 +48,11 @@ spark.sql("CREATE SCHEMA IF NOT EXISTS silver")
 
 # MARKDOWN ********************
 
-# ## Step 1 — Read Bronze
-# Column names are already standardized in Bronze (`Customer_ID`, `Order_Date`, `Sub_Category`, etc.), so this
-# notebook can reference them directly with no further renaming.
+# ## Step 1 — Read Bronze (raw, untouched)
 
 # CELL ********************
 
-bronze_df = spark.table("bronze.bronze_superstore")
+bronze_raw = spark.table("bronze.bronze_superstore")
 
 # METADATA ********************
 
@@ -65,9 +63,41 @@ bronze_df = spark.table("bronze.bronze_superstore")
 
 # MARKDOWN ********************
 
-# ## Step 2 — Data quality cleansing
-# All value-level cleansing logic lives here, not in Bronze:
-# # - Trim leading/trailing whitespace on every string column (done before dedup, so two rows that only differ by
+# ## Step 2 — Standardize column names
+# The source file's headers arrive as `Customer.ID`, `Order.Date`, `Sub.Category`, etc. — dot-separated rather than
+# space-separated (a common artifact of exports produced through R/Power Query-style tools). A dot is especially
+# unsafe in Spark: `col("Customer.ID")` is parsed as *table `Customer`, column `ID`* (a qualified field reference),
+# not a literal column name, so it fails to resolve even though the column genuinely exists.
+# Every column name is normalized once, immediately after reading Bronze and before any other step: trim leading
+# and trailing whitespace, then replace `.`, ` ` (space), `-`, and `/` with `_`. Original casing is preserved
+# (`Customer.ID` → `Customer_ID`). Everything downstream in this notebook then only ever deals with safe,
+# predictable names.
+
+# CELL ********************
+
+def standardize_column_name(name):
+    cleaned = name.strip()
+    for character in (".", " ", "-", "/"):
+        cleaned = cleaned.replace(character, "_")
+    return cleaned
+
+standardized_columns = [standardize_column_name(c) for c in bronze_raw.columns]
+bronze_df = bronze_raw.toDF(*standardized_columns)
+
+print("Standardized columns:", bronze_df.columns)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Step 3 — Data quality cleansing
+# All value-level cleansing logic lives here:
+# - Trim leading/trailing whitespace on every string column (done before dedup, so two rows that only differ by
 #   whitespace are correctly treated as duplicates).
 # - Remove exact duplicate rows.
 # - Drop rows where `Order_ID` — the natural key of the dataset — is missing.
@@ -95,11 +125,11 @@ print(f"Rows after cleansing: {df_valid.count()}")
 
 # MARKDOWN ********************
 
-# ## Step 3 — Standardize data types
+# ## Step 4 — Standardize data types
 # `Order_Date` and `Ship_Date` arrive as text. Before parsing them, a handful of raw sample values are displayed so
 # the date format assumption (`dd-MM-yyyy`, the standard Global Superstore export) can be verified against your
 # actual file — adjust the format string below if the samples don't match.
-# # Numeric measures are explicitly cast rather than relying on CSV schema inference, and `Postal_Code` is cast to
+# Numeric measures are explicitly cast rather than relying on CSV schema inference, and `Postal_Code` is cast to
 # string to safely preserve values with leading zeros.
 
 # CELL ********************
@@ -127,10 +157,10 @@ silver_base = (
 
 # MARKDOWN ********************
 
-# ## Step 4 — Independent lookup tables
+# ## Step 5 — Independent lookup tables
 # These entities don't depend on any other dimension, so they're built first: `segment`, `market`, `ship_mode`, and
 # `category` (which combines `Category` and `Sub_Category` from the source).
-# # > **Surrogate keys:** this notebook uses `monotonically_increasing_id()` to generate surrogate keys.
+# > **Surrogate keys:** this notebook uses `monotonically_increasing_id()` to generate surrogate keys.
 # > In production, surrogate keys are generally generated using sequences, identity columns, or maintained through
 # > merge/SCD logic. `monotonically_increasing_id()` is used here only because this is a simple demo project — it
 # > guarantees unique values but not contiguous or ordered ones.
@@ -189,11 +219,11 @@ print("segment, market, ship_mode, category written.")
 
 # MARKDOWN ********************
 
-# ## Step 5 — Geography and Date
+# ## Step 6 — Geography and Date
 # `geography` groups the location columns (`Country`, `State`, `City`, `Postal_Code`, `Region`). Postal_Code is
 # frequently `NULL` outside the US in this dataset, so a null-safe key is used further down when resolving foreign
 # keys for the sales table.
-# # `date` is a standard calendar dimension built from every distinct date found in **either** `Order_Date` or
+# `date` is a standard calendar dimension built from every distinct date found in **either** `Order_Date` or
 # `Ship_Date`, so a single table can serve both roles.
 
 # CELL ********************
@@ -246,7 +276,7 @@ print("geography, date written.")
 
 # MARKDOWN ********************
 
-# ## Step 6 — Dependent lookup tables
+# ## Step 7 — Dependent lookup tables
 # `customer` references `segment`, and `product` references `category`. Each is joined to its parent lookup to
 # resolve the surrogate key before being written.
 
@@ -296,11 +326,11 @@ print("customer, product written.")
 
 # MARKDOWN ********************
 
-# ## Step 7 — Sales (transaction grain)
+# ## Step 8 — Sales (transaction grain)
 # One row per source record, with every business attribute replaced by the surrogate key of its matching Silver
 # lookup table. This preserves referential integrity: every foreign key in `silver.sales` has a matching row in its
 # parent table.
-# # The geography join uses null-safe equality (`eqNullSafe`) because `postal_code` can legitimately be `NULL`.
+# The geography join uses null-safe equality (`eqNullSafe`) because `postal_code` can legitimately be `NULL`.
 
 # CELL ********************
 
