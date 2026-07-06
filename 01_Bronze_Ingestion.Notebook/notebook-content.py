@@ -61,8 +61,7 @@ df_raw = (
 # space-separated (a common artifact of exports produced through R/Power Query-style tools). This is standardized
 # during ingestion, immediately after reading, rather than in Silver, for a few reasons that make it a best
 # practice in Spark and Microsoft Fabric projects:
-#
-# - **Dots are unsafe in Spark column references.** `col("Customer.ID")` is parsed as *table `Customer`, column
+# # - **Dots are unsafe in Spark column references.** `col("Customer.ID")` is parsed as *table `Customer`, column
 #   `ID`* (nested/qualified field access), not as a literal column name — it fails to resolve even though the
 #   column genuinely exists. Renaming once, up front, removes this trap for every notebook that reads this data.
 # - **One fix point instead of many.** If the standardization lived in Silver instead, every other consumer of
@@ -71,8 +70,7 @@ df_raw = (
 # - **It's a structural fix, not a business rule.** No rows are added, removed, deduplicated, or reshaped, and no
 #   cell values change — only the column headers are rewritten. Bronze therefore stays a faithful, byte-for-byte
 #   equivalent of the source *values*, while becoming safe to query.
-#
-# Rule applied to every column name: trim leading/trailing whitespace, then replace `.`, ` ` (space), `-`, and `/`
+# # Rule applied to every column name: trim leading/trailing whitespace, then replace `.`, ` ` (space), `-`, and `/`
 # with `_`. Original casing is preserved (e.g. `Customer.ID` → `Customer_ID`).
 
 # CELL ********************

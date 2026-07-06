@@ -67,8 +67,7 @@ bronze_df = spark.table("bronze.bronze_superstore")
 
 # ## Step 2 — Data quality cleansing
 # All value-level cleansing logic lives here, not in Bronze:
-#
-# - Trim leading/trailing whitespace on every string column (done before dedup, so two rows that only differ by
+# # - Trim leading/trailing whitespace on every string column (done before dedup, so two rows that only differ by
 #   whitespace are correctly treated as duplicates).
 # - Remove exact duplicate rows.
 # - Drop rows where `Order_ID` — the natural key of the dataset — is missing.
@@ -100,8 +99,7 @@ print(f"Rows after cleansing: {df_valid.count()}")
 # `Order_Date` and `Ship_Date` arrive as text. Before parsing them, a handful of raw sample values are displayed so
 # the date format assumption (`dd-MM-yyyy`, the standard Global Superstore export) can be verified against your
 # actual file — adjust the format string below if the samples don't match.
-#
-# Numeric measures are explicitly cast rather than relying on CSV schema inference, and `Postal_Code` is cast to
+# # Numeric measures are explicitly cast rather than relying on CSV schema inference, and `Postal_Code` is cast to
 # string to safely preserve values with leading zeros.
 
 # CELL ********************
@@ -132,8 +130,7 @@ silver_base = (
 # ## Step 4 — Independent lookup tables
 # These entities don't depend on any other dimension, so they're built first: `segment`, `market`, `ship_mode`, and
 # `category` (which combines `Category` and `Sub_Category` from the source).
-#
-# > **Surrogate keys:** this notebook uses `monotonically_increasing_id()` to generate surrogate keys.
+# # > **Surrogate keys:** this notebook uses `monotonically_increasing_id()` to generate surrogate keys.
 # > In production, surrogate keys are generally generated using sequences, identity columns, or maintained through
 # > merge/SCD logic. `monotonically_increasing_id()` is used here only because this is a simple demo project — it
 # > guarantees unique values but not contiguous or ordered ones.
@@ -196,8 +193,7 @@ print("segment, market, ship_mode, category written.")
 # `geography` groups the location columns (`Country`, `State`, `City`, `Postal_Code`, `Region`). Postal_Code is
 # frequently `NULL` outside the US in this dataset, so a null-safe key is used further down when resolving foreign
 # keys for the sales table.
-#
-# `date` is a standard calendar dimension built from every distinct date found in **either** `Order_Date` or
+# # `date` is a standard calendar dimension built from every distinct date found in **either** `Order_Date` or
 # `Ship_Date`, so a single table can serve both roles.
 
 # CELL ********************
@@ -304,8 +300,7 @@ print("customer, product written.")
 # One row per source record, with every business attribute replaced by the surrogate key of its matching Silver
 # lookup table. This preserves referential integrity: every foreign key in `silver.sales` has a matching row in its
 # parent table.
-#
-# The geography join uses null-safe equality (`eqNullSafe`) because `postal_code` can legitimately be `NULL`.
+# # The geography join uses null-safe equality (`eqNullSafe`) because `postal_code` can legitimately be `NULL`.
 
 # CELL ********************
 
