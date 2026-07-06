@@ -13,8 +13,11 @@
 
 # # 01 - Bronze Ingestion
 #
-# **Layer purpose:** land the raw `superstore.csv` file into a Delta table exactly as it arrives, applying only the
-# minimal cleanup needed to make it safely queryable (no business logic, no renaming, no reshaping).
+# **Bronze = Raw.** This layer is an unmodified copy of the source file, landed as Delta so it can be queried with
+# SQL/Spark and versioned/time-travelled like any other Delta table. It intentionally contains **no business logic
+# and no data cleansing** — no dedup, no trimming, no filtering, no type casting. That responsibility belongs to
+# Silver, so that Bronze always reflects exactly what the source system sent, which is essential for auditing and
+# for re-processing if a downstream rule turns out to be wrong.
 #
 # **Source:** `Files/raw/retail/superstore.csv` in the attached **RetailLakehouse**.
 #
@@ -63,8 +66,8 @@ df_raw = (
 
 # ## Step 2 — Inspect the raw data
 #
-# Display the inferred schema, the row count, and a sample of records before any changes are made. This gives us a
-# baseline to compare against after cleanup.
+# Display the inferred schema, the row count, and a sample of records. This is purely observational — nothing here
+# changes the data.
 
 # METADATA ********************
 
@@ -91,54 +94,11 @@ display(df_raw.limit(10))
 
 # MARKDOWN ********************
 
-# ## Step 3 — Minimal validation
+# ## Step 3 — Write to the Bronze Delta table
 #
-# Bronze only performs the minimum cleanup required to have a trustworthy raw layer:
-#
-# - Remove exact duplicate rows.
-# - Trim leading/trailing whitespace on every string column (common issue in CSV exports).
-# - Drop rows with a missing `Order ID`, since it is the natural key of the dataset.
-#
-# No columns are renamed, cast, split, or dropped here — that belongs in Silver.
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-from pyspark.sql.functions import col, trim
-from pyspark.sql.types import StringType
-
-# Remove exact duplicate rows
-df_clean = df_raw.dropDuplicates()
-
-# Trim whitespace on every string column
-string_columns = [f.name for f in df_clean.schema.fields if isinstance(f.dataType, StringType)]
-for column_name in string_columns:
-    df_clean = df_clean.withColumn(column_name, trim(col(column_name)))
-
-# Drop rows where the natural key (Order ID) is missing
-df_clean = df_clean.filter(col("Order ID").isNotNull())
-
-print(f"Row count after cleanup: {df_clean.count()}")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# MARKDOWN ********************
-
-# ## Step 4 — Write to the Bronze Delta table
-#
-# The result is written as a managed Delta table `bronze.bronze_superstore`. Each run fully overwrites the table,
-# which keeps this learning project simple — a production pipeline would typically use incremental/merge loading.
+# Written as-is, with no cleansing, into a managed Delta table `bronze.bronze_superstore`. Each run fully overwrites
+# the table, which keeps this learning project simple — a production pipeline would typically use incremental/merge
+# loading.
 
 # METADATA ********************
 
@@ -151,7 +111,7 @@ print(f"Row count after cleanup: {df_clean.count()}")
 
 spark.sql("CREATE SCHEMA IF NOT EXISTS bronze")
 
-df_clean.write.format("delta").mode("overwrite").saveAsTable("bronze.bronze_superstore")
+df_raw.write.format("delta").mode("overwrite").saveAsTable("bronze.bronze_superstore")
 
 print("bronze.bronze_superstore written successfully.")
 
