@@ -13,12 +13,13 @@
 
 # # 02 - Silver Transformation
 #
-# **Silver = Cleansed + Standardized.** This is where every data-quality rule and type standardization lives —
-# Bronze deliberately has none. This notebook cleans the raw `bronze.bronze_superstore` table, standardizes its
-# column names and data types, and splits it into a set of conformed tables — one per business entity — each with
-# a surrogate key. This is a normalization step, not the final star schema (that happens in Gold).
+# **Silver = Cleansed + Standardized.** This is where every data-quality rule and data-type standardization lives —
+# Bronze only standardizes column *names*, nothing else. This notebook cleans `bronze.bronze_superstore`,
+# standardizes value-level data types, and splits it into a set of conformed tables — one per business entity —
+# each with a surrogate key. This is a normalization step, not the final star schema (that happens in Gold).
 #
-# **Source:** `bronze.bronze_superstore`.
+# **Source:** `bronze.bronze_superstore` (already has standardized, underscore-safe column names — see Bronze
+# Step 2).
 #
 # **Output tables:** `silver.segment`, `silver.market`, `silver.ship_mode`, `silver.category`, `silver.geography`,
 # `silver.date`, `silver.customer`, `silver.product`, `silver.sales`.
@@ -31,8 +32,6 @@
 # META }
 
 # CELL ********************
-
-import re
 
 from pyspark.sql.functions import col, trim, monotonically_increasing_id, to_date, dayofmonth, month, year, quarter, date_format
 from pyspark.sql.types import StringType, DoubleType, IntegerType
@@ -48,7 +47,10 @@ spark.sql("CREATE SCHEMA IF NOT EXISTS silver")
 
 # MARKDOWN ********************
 
-# ## Step 1 — Read Bronze (raw, untouched)
+# ## Step 1 — Read Bronze
+#
+# Column names are already standardized in Bronze (`Customer_ID`, `Order_Date`, `Sub_Category`, etc.), so this
+# notebook can reference them directly with no further renaming.
 
 # METADATA ********************
 
@@ -59,7 +61,7 @@ spark.sql("CREATE SCHEMA IF NOT EXISTS silver")
 
 # CELL ********************
 
-bronze_raw = spark.table("bronze.bronze_superstore")
+bronze_df = spark.table("bronze.bronze_superstore")
 
 # METADATA ********************
 
@@ -70,46 +72,9 @@ bronze_raw = spark.table("bronze.bronze_superstore")
 
 # MARKDOWN ********************
 
-# ## Step 2 — Normalize column names
+# ## Step 2 — Data quality cleansing
 #
-# Depending on the export tool, the source file's headers can arrive as `Customer ID`, `Customer.ID`, or
-# `Customer-ID`. A dot in a column name is especially risky in Spark: `col("Customer.ID")` is parsed as *table
-# `Customer`, column `ID`* rather than a literal name, which fails to resolve.
-#
-# To make the rest of the pipeline resilient to whatever the source hands us, every column name is normalized once
-# here — any run of non-alphanumeric characters becomes a single underscore (e.g. `Customer.ID` → `Customer_ID`,
-# `Sub-Category` → `Sub_Category`). Everything downstream then only ever deals with safe, predictable names.
-
-# METADATA ********************
-
-# META {
-# META   "language": "markdown",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-def normalize_column_name(name, index):
-    normalized = re.sub(r"[^0-9a-zA-Z]+", "_", name).strip("_")
-    return normalized if normalized else f"col_{index}"
-
-normalized_columns = [normalize_column_name(c, i) for i, c in enumerate(bronze_raw.columns)]
-bronze_normalized = bronze_raw.toDF(*normalized_columns)
-
-print("Normalized columns:", bronze_normalized.columns)
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# MARKDOWN ********************
-
-# ## Step 3 — Data quality cleansing
-#
-# All cleansing logic lives here, not in Bronze:
+# All value-level cleansing logic lives here, not in Bronze:
 #
 # - Trim leading/trailing whitespace on every string column (done before dedup, so two rows that only differ by
 #   whitespace are correctly treated as duplicates).
@@ -125,9 +90,9 @@ print("Normalized columns:", bronze_normalized.columns)
 
 # CELL ********************
 
-string_columns = [f.name for f in bronze_normalized.schema.fields if isinstance(f.dataType, StringType)]
+string_columns = [f.name for f in bronze_df.schema.fields if isinstance(f.dataType, StringType)]
 
-df_trimmed = bronze_normalized
+df_trimmed = bronze_df
 for column_name in string_columns:
     df_trimmed = df_trimmed.withColumn(column_name, trim(col(column_name)))
 
@@ -146,7 +111,7 @@ print(f"Rows after cleansing: {df_valid.count()}")
 
 # MARKDOWN ********************
 
-# ## Step 4 — Standardize data types
+# ## Step 3 — Standardize data types
 #
 # `Order_Date` and `Ship_Date` arrive as text. Before parsing them, a handful of raw sample values are displayed so
 # the date format assumption (`dd-MM-yyyy`, the standard Global Superstore export) can be verified against your
@@ -187,7 +152,7 @@ silver_base = (
 
 # MARKDOWN ********************
 
-# ## Step 5 — Independent lookup tables
+# ## Step 4 — Independent lookup tables
 #
 # These entities don't depend on any other dimension, so they're built first: `segment`, `market`, `ship_mode`, and
 # `category` (which combines `Category` and `Sub_Category` from the source).
@@ -258,7 +223,7 @@ print("segment, market, ship_mode, category written.")
 
 # MARKDOWN ********************
 
-# ## Step 6 — Geography and Date
+# ## Step 5 — Geography and Date
 #
 # `geography` groups the location columns (`Country`, `State`, `City`, `Postal_Code`, `Region`). Postal_Code is
 # frequently `NULL` outside the US in this dataset, so a null-safe key is used further down when resolving foreign
@@ -324,7 +289,7 @@ print("geography, date written.")
 
 # MARKDOWN ********************
 
-# ## Step 7 — Dependent lookup tables
+# ## Step 6 — Dependent lookup tables
 #
 # `customer` references `segment`, and `product` references `category`. Each is joined to its parent lookup to
 # resolve the surrogate key before being written.
@@ -382,7 +347,7 @@ print("customer, product written.")
 
 # MARKDOWN ********************
 
-# ## Step 8 — Sales (transaction grain)
+# ## Step 7 — Sales (transaction grain)
 #
 # One row per source record, with every business attribute replaced by the surrogate key of its matching Silver
 # lookup table. This preserves referential integrity: every foreign key in `silver.sales` has a matching row in its
