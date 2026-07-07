@@ -1,0 +1,91 @@
+table dim_category
+	lineageTag: 7115f9e5-3a2e-410e-8c31-fba8ff99dd39
+	sourceLineageTag: [gold].[dim_category]
+
+	measure 'Total Sales' =
+			
+			SUM(fact_sales[Sales])
+		lineageTag: 4257d1a2-c5ef-4d0c-a039-94769420fcd3
+
+		changedProperty = Name
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Total Quantity' =
+			
+			SUM(fact_sales[Quantity])
+		lineageTag: c4f0c483-cf19-44dc-861c-8572664ea334
+
+		changedProperty = Name
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Total Orders' =
+			
+			DISTINCTCOUNT(fact_sales[Order_ID])
+		formatString: 0
+		lineageTag: a774de1b-4f51-459f-a580-c76cde354838
+
+		changedProperty = Name
+
+	measure 'Total Profit' =
+			
+			SUM(fact_sales[Profit])
+		lineageTag: 708e585a-3917-461c-bf3b-7c9b84e3cd7a
+
+		changedProperty = Name
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Total Customers' =
+			
+			DISTINCTCOUNT(fact_sales[customer_sk])
+		formatString: 0
+		lineageTag: 996a2517-3a0a-4634-9038-58644cb10594
+
+		changedProperty = Name
+
+	measure 'Profit Margin' =
+			
+			DIVIDE([Total Profit],[Total Sales],0)
+		lineageTag: 8ef9f120-34cc-4f61-8893-b6dfd4f919d9
+
+		changedProperty = Name
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column category_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: 1d7ab6db-1825-484f-9bf4-c6b5ad0273a1
+		sourceLineageTag: category_sk
+		summarizeBy: none
+		sourceColumn: category_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column category
+		dataType: string
+		lineageTag: 9e1a2582-2e6f-4439-9b1a-df7f31177614
+		sourceLineageTag: category
+		summarizeBy: none
+		sourceColumn: category
+
+		annotation SummarizationSetBy = Automatic
+
+	column sub_category
+		dataType: string
+		lineageTag: b2f74ba9-c687-4d69-965a-9682ee5e8801
+		sourceLineageTag: sub_category
+		summarizeBy: none
+		sourceColumn: sub_category
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_category = entity
+		mode: directLake
+		source
+			entityName: dim_category
+			schemaName: gold
+			expressionSource: 'DirectLake - RetailLakehouse'
+

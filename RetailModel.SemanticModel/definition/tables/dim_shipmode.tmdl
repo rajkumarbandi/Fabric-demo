@@ -1,0 +1,30 @@
+table dim_shipmode
+	lineageTag: 3747e45a-275a-4aa6-9a63-e694297d2d23
+	sourceLineageTag: [gold].[dim_shipmode]
+
+	column ship_mode_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: 3af42571-9b18-43fb-9f34-d3e5e7afd5bf
+		sourceLineageTag: ship_mode_sk
+		summarizeBy: none
+		sourceColumn: ship_mode_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column ship_mode_name
+		dataType: string
+		lineageTag: 17face53-12c7-4520-ba05-b5b824d5cac3
+		sourceLineageTag: ship_mode_name
+		summarizeBy: none
+		sourceColumn: ship_mode_name
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_shipmode = entity
+		mode: directLake
+		source
+			entityName: dim_shipmode
+			schemaName: gold
+			expressionSource: 'DirectLake - RetailLakehouse'
+

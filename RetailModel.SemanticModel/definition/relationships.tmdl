@@ -1,0 +1,32 @@
+relationship 08ab428c-16c9-3a1a-ef88-39660ef46355
+	fromColumn: fact_sales.customer_sk
+	toColumn: dim_customer.customer_sk
+
+relationship bc6e7318-2389-9681-ffb4-9ad77e5485f2
+	fromColumn: fact_sales.product_sk
+	toColumn: dim_product.product_sk
+
+relationship f9292dbd-5b14-a3a9-1a19-4bac402e7e97
+	fromColumn: fact_sales.category_sk
+	toColumn: dim_category.category_sk
+
+relationship 16970fac-c982-87b8-9d57-05c1b852c2ce
+	fromColumn: fact_sales.order_date_sk
+	toColumn: dim_date.date_sk
+
+relationship ab9a3d83-5f4b-f97a-52af-d4f06c606197
+	fromColumn: fact_sales.geography_sk
+	toColumn: dim_geography.geography_sk
+
+relationship 7c17857c-adf3-fdeb-2c0e-f9472cd6841f
+	fromColumn: fact_sales.market_sk
+	toColumn: dim_market.market_sk
+
+relationship d9de02a4-33f1-47b9-0dce-dc6c99c47ce8
+	fromColumn: fact_sales.segment_sk
+	toColumn: dim_segment.segment_sk
+
+relationship 1af36fbf-2264-f90a-bc11-3d92ea9c4c20
+	fromColumn: fact_sales.ship_mode_sk
+	toColumn: dim_shipmode.ship_mode_sk
+

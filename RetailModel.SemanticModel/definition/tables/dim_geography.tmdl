@@ -1,0 +1,66 @@
+table dim_geography
+	lineageTag: 3bf42800-d3f7-4152-94af-3057dc2814b6
+	sourceLineageTag: [gold].[dim_geography]
+
+	column geography_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: 8cceedf3-56cd-4bf9-9053-7b43d4787fc8
+		sourceLineageTag: geography_sk
+		summarizeBy: none
+		sourceColumn: geography_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column country
+		dataType: string
+		lineageTag: 8edc9c7b-70f9-42a1-82b3-be25bd9fa13c
+		sourceLineageTag: country
+		summarizeBy: none
+		sourceColumn: country
+
+		annotation SummarizationSetBy = Automatic
+
+	column state
+		dataType: string
+		lineageTag: 2a24cad3-7105-4019-9bb8-acd4c450cb69
+		sourceLineageTag: state
+		summarizeBy: none
+		sourceColumn: state
+
+		annotation SummarizationSetBy = Automatic
+
+	column city
+		dataType: string
+		lineageTag: 0d303ba0-d0f5-4ccf-8642-49c6976d0177
+		sourceLineageTag: city
+		summarizeBy: none
+		sourceColumn: city
+
+		annotation SummarizationSetBy = Automatic
+
+	column postal_code
+		dataType: string
+		lineageTag: 1798fc37-3cb9-43e6-ade8-4f40dc3bd14d
+		sourceLineageTag: postal_code
+		summarizeBy: none
+		sourceColumn: postal_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column region
+		dataType: string
+		lineageTag: f5271700-9b6c-4584-9194-b559bb0afe75
+		sourceLineageTag: region
+		summarizeBy: none
+		sourceColumn: region
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_geography = entity
+		mode: directLake
+		source
+			entityName: dim_geography
+			schemaName: gold
+			expressionSource: 'DirectLake - RetailLakehouse'
+

@@ -1,0 +1,173 @@
+table fact_sales
+	lineageTag: a06a26ce-eb11-412d-8129-15b32675ebdf
+	sourceLineageTag: [gold].[fact_sales]
+
+	column order_id
+		dataType: string
+		lineageTag: 7e41a9a0-02ec-45c0-8e6f-608d7ef2a18f
+		sourceLineageTag: order_id
+		summarizeBy: none
+		sourceColumn: order_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column customer_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: b0072772-6b3b-49cc-957b-7436a2ecab59
+		sourceLineageTag: customer_sk
+		summarizeBy: none
+		sourceColumn: customer_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: 17cdb24b-5e54-4c2c-9a12-80c6cfb7afdd
+		sourceLineageTag: product_sk
+		summarizeBy: none
+		sourceColumn: product_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column category_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: f536e449-8aed-417f-9d73-7229a34ad2a8
+		sourceLineageTag: category_sk
+		summarizeBy: none
+		sourceColumn: category_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column segment_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: 114bb5e7-2ee6-4bd7-aa65-8b3ee462c1f1
+		sourceLineageTag: segment_sk
+		summarizeBy: none
+		sourceColumn: segment_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column geography_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: 56ba7eba-724f-4841-83e9-c3e52ded63ff
+		sourceLineageTag: geography_sk
+		summarizeBy: none
+		sourceColumn: geography_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column market_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: 122ce019-4e95-448c-a48d-306b5b2c37ce
+		sourceLineageTag: market_sk
+		summarizeBy: none
+		sourceColumn: market_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column ship_mode_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: 43be54ef-916a-4abe-88af-2020276eeffc
+		sourceLineageTag: ship_mode_sk
+		summarizeBy: none
+		sourceColumn: ship_mode_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column order_date_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: 1f9b6276-3a2f-4c7e-81ff-e2ff41274193
+		sourceLineageTag: order_date_sk
+		summarizeBy: none
+		sourceColumn: order_date_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column ship_date_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: 320adb60-42af-4efe-bb6c-9076daa392a4
+		sourceLineageTag: ship_date_sk
+		summarizeBy: sum
+		sourceColumn: ship_date_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column sales
+		dataType: double
+		lineageTag: 62acab68-e136-4079-81db-346cb56b47ae
+		sourceLineageTag: sales
+		summarizeBy: sum
+		sourceColumn: sales
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column quantity
+		dataType: int64
+		formatString: 0
+		lineageTag: a918c22c-275c-4047-80f6-0f0d268437d6
+		sourceLineageTag: quantity
+		summarizeBy: sum
+		sourceColumn: quantity
+
+		annotation SummarizationSetBy = Automatic
+
+	column discount
+		dataType: double
+		lineageTag: 7aac80ca-78ff-43a6-abd7-b335c40325f2
+		sourceLineageTag: discount
+		summarizeBy: sum
+		sourceColumn: discount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column profit
+		dataType: double
+		lineageTag: 8358c26d-9630-42f0-a5f1-c0057c3dddbf
+		sourceLineageTag: profit
+		summarizeBy: sum
+		sourceColumn: profit
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column shipping_cost
+		dataType: double
+		lineageTag: e93d8453-f1ab-459b-bc35-7451875c1448
+		sourceLineageTag: shipping_cost
+		summarizeBy: sum
+		sourceColumn: shipping_cost
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column order_priority
+		dataType: string
+		lineageTag: bfe84096-cbab-455f-9a72-15903889f0cc
+		sourceLineageTag: order_priority
+		summarizeBy: none
+		sourceColumn: order_priority
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_sales = entity
+		mode: directLake
+		source
+			entityName: fact_sales
+			schemaName: gold
+			expressionSource: 'DirectLake - RetailLakehouse'
+

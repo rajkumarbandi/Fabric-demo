@@ -1,0 +1,30 @@
+table dim_market
+	lineageTag: 945f25af-5023-49e8-8fbd-976dcd09d65f
+	sourceLineageTag: [gold].[dim_market]
+
+	column market_sk
+		dataType: int64
+		formatString: 0
+		lineageTag: 20ac672e-cbbb-4c75-94f7-8695267dca32
+		sourceLineageTag: market_sk
+		summarizeBy: none
+		sourceColumn: market_sk
+
+		annotation SummarizationSetBy = Automatic
+
+	column market_name
+		dataType: string
+		lineageTag: 6219fe0e-a2b2-45ba-82c3-bad27d051d32
+		sourceLineageTag: market_name
+		summarizeBy: none
+		sourceColumn: market_name
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_market = entity
+		mode: directLake
+		source
+			entityName: dim_market
+			schemaName: gold
+			expressionSource: 'DirectLake - RetailLakehouse'
+

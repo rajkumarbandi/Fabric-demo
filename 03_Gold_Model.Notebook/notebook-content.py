@@ -6,7 +6,18 @@
 # META   "kernel_info": {
 # META     "name": "synapse_pyspark"
 # META   },
-# META   "dependencies": {}
+# META   "dependencies": {
+# META     "lakehouse": {
+# META       "default_lakehouse": "23fb6285-b11d-4d7b-a9af-78c761ce904e",
+# META       "default_lakehouse_name": "RetailLakehouse",
+# META       "default_lakehouse_workspace_id": "f30d77e2-708e-4748-8a9b-00c23037a869",
+# META       "known_lakehouses": [
+# META         {
+# META           "id": "23fb6285-b11d-4d7b-a9af-78c761ce904e"
+# META         }
+# META       ]
+# META     }
+# META   }
 # META }
 
 # MARKDOWN ********************

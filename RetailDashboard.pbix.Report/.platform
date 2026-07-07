@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "RetailDashboard.pbix"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "43418eb0-c01a-8cbc-4d7d-2508394e19e1"
+  }
+}
